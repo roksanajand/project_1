@@ -1,4 +1,5 @@
 dane <- read.csv("./data/online_retail.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
 #basic info about data 
 nrow(dane)
 colnames(dane)
