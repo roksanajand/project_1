@@ -28,6 +28,10 @@ head(dane)
 liczba_ujemnych_cen <- sum(dane$UnitPrice<0)
 dane <- dane[dane$UnitPrice >= 0, ]
 
+# Najczęściej zwracane produkty
+najczestsze_zwroty <- dane[dane$IsReturn == TRUE, ]
+najczestsze_zwroty_top <- sort(table(najczestsze_zwroty$Description), decreasing = TRUE)[1:10]
+print(najczestsze_zwroty_top)
 
 
 #widzimy ze w wiekszosci NA jest w kolumnie CustomerID co możemy zaakceptować
@@ -47,6 +51,11 @@ dane <- na.omit(dane)
 dane$Year <- format(as.Date(dane$InvoiceDate), "%Y")
 dane$Month <- format(as.Date(dane$InvoiceDate), "%m")
 dane$DayOfWeek <- weekdays(as.Date(dane$InvoiceDate))
+
+
+# Najpopularniejsze produkty
+najpopularniejsze_produkty <- sort(table(dane$Description), decreasing = TRUE)[1:10]
+print(najpopularniejsze_produkty)
 
 head(dane)
 
@@ -136,7 +145,7 @@ best_selling_products_netherland <- dane %>%
   slice_head(n = 5) %>%  # Wybór 5 najlepiej sprzedających się produktów w UK
   ungroup()
 
-# Wykres słupkowy pokazujący najlepiej sprzedające się produkty w UK
+# Wykres słupkowy pokazujący najlepiej sprzedające się produkty
 ggplot(best_selling_products_netherland, aes(x = reorder(Description, -TotalSales), y = TotalSales)) +
   geom_bar(stat = "identity", fill = "red") +
   labs(title = "Top 5 Best Selling Products in the netherlands", x = "Product Description", y = "Total Sales") +
@@ -150,14 +159,58 @@ best_selling_products_eire <- dane %>%
   slice_head(n = 5) %>%  # Wybór 5 najlepiej sprzedających się produktów w UK
   ungroup()
 
-# Wykres słupkowy pokazujący najlepiej sprzedające się produkty w UK
+# Wykres słupkowy pokazujący najlepiej sprzedające się produkt
 ggplot(best_selling_products_eire, aes(x = reorder(Description, -TotalSales), y = TotalSales)) +
   geom_bar(stat = "identity", fill = "red") +
   labs(title = "Top 5 Best Selling Products in the eire", x = "Product Description", y = "Total Sales") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-unique_products_count <- dane %>%
-  summarise(NumUniqueProducts = n_distinct(Description))
+# Podział sprzedaży na kraje (udział procentowy)
+total_sales <- sum(country_sales$TotalSales)
+country_sales <- country_sales %>% 
+  mutate(Percentage = round((TotalSales / total_sales) * 100, 2))
 
-# Wyświetlenie wyniku - tyle różnych porduktó
-print(unique_products_count)
+# Wykres kołowy dla udziału krajów
+ggplot(country_sales, aes(x = "", y = Percentage, fill = Country)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  labs(title = "Share of Sales by Country") +
+  theme_void()
+
+# Wykres kołowy dla udziału krajów
+ggplot(country_sales, aes(x = "", y = Percentage, fill = Country)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  labs(title = "Share of Sales by Country") +
+  theme_void()
+
+
+
+# Wykres liniowy sprzedaży miesięcznej
+ggplot(monthly_sales, aes(x = YearMonth, y = TotalSales, group = 1)) +
+  geom_line(color = "blue", linewidth = 1) +
+  geom_point(color = "red", size = 2) +
+  labs(title = "Monthly Sales Trend", x = "Year-Month", y = "Total Sales") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+top_customers <- dane %>%
+  group_by(CustomerID) %>%
+  summarise(TotalSales = sum(Price, na.rm = TRUE)) %>%
+  arrange(desc(TotalSales)) %>%
+  slice_head(n = 10) %>%
+  ungroup()
+
+# Wykres słupkowy dla klientów generujących największy zysk
+ggplot(top_customers, aes(x = reorder(as.character(CustomerID), -TotalSales), y = TotalSales)) +
+  geom_bar(stat = "identity", fill = "cyan") +
+  labs(title = "Top 10 Customers by Total Sales", x = "Customer ID", y = "Total Sales") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+top_products_by_month <- dane %>%
+  group_by(Month, Description) %>%
+  summarise(TotalSales = sum(Price, na.rm = TRUE)) %>%
+  arrange(Month, desc(TotalSales)) %>%
+  group_by(Month) %>%
+  slice_head(n = 5) %>%
+  ungroup()
